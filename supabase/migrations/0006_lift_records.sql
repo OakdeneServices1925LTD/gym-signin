@@ -12,7 +12,7 @@ create table public.lift_records (
   id            bigserial primary key,
   user_id       uuid not null references auth.users on delete cascade,
   lift          text not null check (lift in
-                  ('squat','bench','deadlift','ohp','legpress','chinup','pressup','run5k')),
+                  ('squat','bench','deadlift','ohp','legpress','pullup','pressup','run5k')),
   weight_kg     numeric(6,2) check (weight_kg is null or (weight_kg > 0 and weight_kg <= 500)),
   reps          int          check (reps is null or (reps between 1 and 200)),
   seconds       int          check (seconds is null or (seconds between 60 and 7200)),

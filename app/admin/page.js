@@ -18,13 +18,18 @@ export default async function AdminPage() {
       .order('username'),
     supabase.from('current_occupancy').select('user_id'),
     supabase.from('check_ins')
-      .select('id, user_id, checked_in_at, checked_out_at, auto_closed')
+      .select('id, user_id, checked_in_at, checked_out_at, auto_closed, guest_name')
       .order('checked_in_at', { ascending: false }).limit(50),
     supabase.rpc('alone_periods'),
   ]);
 
   const names = Object.fromEntries((members || []).map((m) => [m.id, m.username]));
-  const log = (raw || []).map((c) => ({ ...c, username: names[c.user_id] || 'unknown' }));
+  const log = (raw || []).map((c) => ({
+    ...c,
+    username: c.guest_name
+      ? `${c.guest_name} (guest of ${names[c.user_id] || 'unknown'})`
+      : names[c.user_id] || 'unknown',
+  }));
 
   return (
     <>

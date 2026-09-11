@@ -55,7 +55,9 @@ export default function AgreementForm({ fullName }) {
         <h3>Rules</h3>
         <ul>
           <li>Use the equipment safely and put it back after use</li>
-          <li>No guests without permission</li>
+          <li>Guests: sign them in through the app under your own name. They have not signed
+              this agreement, so you are responsible for them for the whole visit, and they leave
+              when you do</li>
           <li>Never use the gym under the influence of alcohol or drugs</li>
           <li>Leave the premises secure — yard gates locked</li>
         </ul>

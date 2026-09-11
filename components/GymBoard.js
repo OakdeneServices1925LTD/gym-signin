@@ -18,7 +18,7 @@ export default function GymBoard({ initial, me }) {
   const load = useCallback(async () => {
     const { data } = await supabase
       .from('current_occupancy')
-      .select('user_id, username, full_name, checked_in_at')
+      .select('id, user_id, username, full_name, guest_name, host_name, checked_in_at')
       .order('checked_in_at');
     if (data) setPeople(data);
   }, [supabase]);
@@ -33,12 +33,44 @@ export default function GymBoard({ initial, me }) {
     return () => { supabase.removeChannel(channel); clearInterval(poll); };
   }, [supabase, load]);
 
-  const mine = people.find((p) => p.user_id === me.id);
+  const mine = people.find((p) => p.user_id === me.id && !p.guest_name);
+  const myGuests = people.filter((p) => p.user_id === me.id && p.guest_name);
   const total = people.length;
+
+  // A guest has signed nothing, so the member carries them. Name and
+  // acknowledgement are both required before the row is written.
+  async function signInGuest() {
+    const name = prompt('Guest name (first and last):');
+    if (!name || name.trim().length < 2) return;
+    const ok = confirm(
+      `Sign ${name.trim()} in as your guest?\n\n` +
+      'They have not signed the gym agreement, so you are responsible for them ' +
+      'for the whole visit. They do not train on their own, and they leave when you do.',
+    );
+    if (!ok) return;
+    setBusy(true); setError('');
+    const { error: e } = await supabase
+      .from('check_ins').insert({ user_id: me.id, guest_name: name.trim() });
+    if (e) setError(e.message.includes('two guests')
+      ? 'You can have two guests signed in at once.'
+      : 'Could not sign your guest in. Try again.');
+    await load();
+    setBusy(false);
+  }
+
+  async function signOutRow(id) {
+    setBusy(true); setError('');
+    const { error: e } = await supabase
+      .from('check_ins').update({ checked_out_at: new Date().toISOString() }).eq('id', id);
+    if (e) setError('Could not sign them out. Try again.');
+    await load();
+    setBusy(false);
+  }
 
   async function toggle() {
     setBusy(true); setError('');
     if (mine) {
+      // Signing yourself out takes your guests with you — they leave when you do.
       const { error: e } = await supabase
         .from('check_ins')
         .update({ checked_out_at: new Date().toISOString() })
@@ -78,9 +110,22 @@ export default function GymBoard({ initial, me }) {
         {total === 0
           ? <p className="empty-note">Nobody is signed in.</p>
           : people.map((p) => (
-              <div key={p.user_id} className={'row' + (p.user_id === me.id ? ' me' : '')}>
-                <span className="who">{p.full_name}</span>
-                <span className="when">since {time(p.checked_in_at)}</span>
+              <div key={p.id} className={'row' + (p.user_id === me.id && !p.guest_name ? ' me' : '')}>
+                <span className="who">
+                  {p.full_name}
+                  {p.guest_name && (
+                    <em style={{ fontStyle: 'normal', fontWeight: 400, color: 'var(--dim)' }}>
+                      {' '}— guest of {p.host_name}
+                    </em>
+                  )}
+                </span>
+                <span className="when">
+                  since {time(p.checked_in_at)}
+                  {p.guest_name && p.user_id === me.id && (
+                    <button className="chip" style={{ marginLeft: 8 }}
+                      disabled={busy} onClick={() => signOutRow(p.id)}>Out</button>
+                  )}
+                </span>
               </div>
             ))}
       </section>
@@ -91,6 +136,13 @@ export default function GymBoard({ initial, me }) {
         onClick={toggle} disabled={busy}>
         {busy ? 'One second…' : mine ? 'Sign out' : 'Sign in'}
       </button>
+
+      {mine && myGuests.length < 2 && (
+        <button className="action out" type="button" style={{ fontSize: 15, padding: 14 }}
+          onClick={signInGuest} disabled={busy}>
+          Sign in a guest
+        </button>
+      )}
 
       <section className="hours">
         <b>Access hours</b>

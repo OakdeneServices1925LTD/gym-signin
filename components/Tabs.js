@@ -10,6 +10,7 @@ export default function Tabs({ isAdmin }) {
       <div>
         <Link href="/gym" className={on('/gym')}><b>◉</b>Gym</Link>
         <Link href="/book" className={on('/book')}><b>▦</b>Book</Link>
+        <Link href="/records" className={on('/records')}><b>◆</b>Records</Link>
         {isAdmin && <Link href="/admin" className={on('/admin')}><b>☰</b>Admin</Link>}
       </div>
     </nav>

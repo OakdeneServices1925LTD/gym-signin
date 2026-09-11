@@ -27,6 +27,15 @@ const json = (body: unknown, status = 200) =>
   });
 
 Deno.serve(async (req) => {
+  try {
+    return await handle(req);
+  } catch (err) {
+    console.error("pin-auth failed:", err);
+    return json({ error: "Something went wrong at our end. Tell Jamie." }, 500);
+  }
+});
+
+async function handle(req: Request) {
   if (req.method === "OPTIONS") {
     return new Response("ok", {
       headers: {
@@ -96,7 +105,7 @@ Deno.serve(async (req) => {
       return json({ error: "This account is already set up. Sign in with your PIN." }, 409);
     }
     if (!st?.activation_hash || !code) return badCreds();
-    if (!(await bcrypt.compare(String(code), st.activation_hash))) return await fail();
+    if (!bcrypt.compareSync(String(code), st.activation_hash)) return await fail();
 
     const { error } = await admin.auth.admin.updateUserById(profile.id, {
       password: secretFor(pin),
@@ -125,4 +134,4 @@ Deno.serve(async (req) => {
   }
 
   return json({ error: "Unknown action." }, 400);
-});
+}

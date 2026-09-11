@@ -100,7 +100,7 @@ export default function GymBoard({ initial, me }) {
       </section>
 
       <p className="foot">
-        Last one out: alarm on, yard gates locked.<br />
+        Last one out: yard gates locked.<br />
         <Link href="/welcome">Add this to your home screen</Link>
       </p>
     </main>

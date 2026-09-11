@@ -14,7 +14,7 @@ export default async function AdminPage() {
   const supabase = await supabaseServer();
   const [{ data: members }, { data: occupancy }, { data: raw }, { data: alone }] = await Promise.all([
     supabase.from('profiles')
-      .select('id, username, full_name, is_admin, is_active, activated_at')
+      .select('id, username, full_name, is_admin, is_owner, is_active, activated_at')
       .order('username'),
     supabase.from('current_occupancy').select('user_id'),
     supabase.from('check_ins')
@@ -34,6 +34,7 @@ export default async function AdminPage() {
         log={log}
         alone={alone || []}
         meId={user.id}
+        isOwner={!!profile.is_owner}
       />
       <Tabs isAdmin />
     </>

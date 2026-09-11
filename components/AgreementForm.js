@@ -57,7 +57,7 @@ export default function AgreementForm({ fullName }) {
           <li>Use the equipment safely and put it back after use</li>
           <li>No guests without permission</li>
           <li>Never use the gym under the influence of alcohol or drugs</li>
-          <li>Leave the premises secure — alarm set, yard gates locked</li>
+          <li>Leave the premises secure — yard gates locked</li>
         </ul>
 
         <h3>Ending access</h3>

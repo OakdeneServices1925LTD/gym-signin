@@ -71,7 +71,11 @@ export default function BookBoard({ me }) {
   }
 
   const day = days[sel];
-  const slots = SLOTS_BY_DAY[day.getDay()] || [];
+  const all = SLOTS_BY_DAY[day.getDay()] || [];
+  // Today's tab only shows what's still ahead of you — no scrolling past this morning.
+  const slots = sel === 0
+    ? all.filter((t) => new Date(slotToISO(ymd(day), t)).getTime() > Date.now() - 30 * 60000)
+    : all;
 
   return (
     <main>
@@ -98,7 +102,7 @@ export default function BookBoard({ me }) {
           <span>{DAYS[day.getDay()]} {day.getDate()} {MONTHS[day.getMonth()]}</span>
         </h2>
         {slots.length === 0
-          ? <p className="empty-note">Closed on Sundays.</p>
+          ? <p className="empty-note">Nothing left today. Try tomorrow.</p>
           : slots.map((t) => {
               const iso = slotToISO(ymd(day), t);
               const here = forSlot(iso);

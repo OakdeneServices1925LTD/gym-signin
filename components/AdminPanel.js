@@ -7,7 +7,7 @@ const when = (iso) => new Date(iso).toLocaleString('en-GB', {
   weekday: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/London',
 });
 
-export default function AdminPanel({ members, occupancy, log, alone, meId }) {
+export default function AdminPanel({ members, occupancy, log, alone, meId, isOwner }) {
   const router = useRouter();
   const supabase = supabaseBrowser();
   const [first, setFirst] = useState('');
@@ -43,6 +43,22 @@ export default function AdminPanel({ members, occupancy, log, alone, meId }) {
     setBusy(false);
     if (!res.ok) { setError(data.error); return; }
     setIssued({ username: m.username, full_name: m.full_name, code: data.code });
+    router.refresh();
+  }
+
+  // Deliberately harder than deactivating: it wipes their signed agreement
+  // and their whole check-in history along with them.
+  async function deleteMember(m) {
+    if (!confirm(`Delete ${m.full_name} completely?\n\nThis also deletes their signed agreement and every check-in they ever made. To just stop their access, use Active instead.`)) return;
+    if (prompt(`Type their username to confirm:`) !== m.username) { setError('Not deleted — username did not match.'); return; }
+    setBusy(true); setError(''); setIssued(null);
+    const res = await fetch('/api/admin/delete', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ user_id: m.id }),
+    });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) { setError(data.error); return; }
     router.refresh();
   }
 
@@ -96,17 +112,25 @@ export default function AdminPanel({ members, occupancy, log, alone, meId }) {
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
               {inGym.has(m.id) && <span className="chip in">In gym</span>}
-              <button className={'chip' + (m.is_admin ? ' ok' : '')}
-                onClick={() => toggleAdmin(m)}
-                disabled={busy || m.id === meId}
-                title={m.id === meId ? 'You cannot change your own admin rights' : ''}>
-                {m.is_admin ? 'Admin' : 'Member'}
-              </button>
+              {isOwner ? (
+                <button className={'chip' + (m.is_admin ? ' ok' : '')}
+                  onClick={() => toggleAdmin(m)}
+                  disabled={busy || m.id === meId}
+                  title={m.id === meId ? 'You cannot change your own admin rights' : ''}>
+                  {m.is_admin ? 'Admin' : 'Member'}
+                </button>
+              ) : m.is_admin ? (
+                <span className="chip ok">Admin</span>
+              ) : null}
               <button className="chip" onClick={() => resetPin(m)} disabled={busy}>Reset</button>
               <button className={'chip ' + (m.is_active ? 'ok' : '')}
                 onClick={() => toggleActive(m)} disabled={busy || m.id === meId}>
                 {m.is_active ? 'Active' : 'Inactive'}
               </button>
+              {!m.is_owner && m.id !== meId && (
+                <button className="chip" style={{ color: '#d9605a', borderColor: '#5c2422' }}
+                  onClick={() => deleteMember(m)} disabled={busy}>Delete</button>
+              )}
             </div>
           </div>
         ))}
@@ -119,8 +143,12 @@ export default function AdminPanel({ members, occupancy, log, alone, meId }) {
         </div>
         <p className="legend">
           Adding a member creates the username and a one-time setup code. They choose their own PIN
-          — you never see it. Tap <b>Member</b> to make someone an admin. You cannot change your own
-          rights, and the last admin cannot be removed.
+          — you never see it.{' '}
+          {isOwner
+            ? 'Tap Member to make someone an admin. Only you can do that.'
+            : 'Only the owner can make someone an admin.'}{' '}
+          <b>Active</b> stops someone using the gym but keeps their record. <b>Delete</b> removes
+          them and their history for good.
         </p>
       </section>
 
